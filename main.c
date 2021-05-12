@@ -150,11 +150,14 @@ void execute_cmd() {
 	}
 }
 
+uint8_t buffer_data_rx[32];
+struct BUFFER buffer_rx;
 int main(void)
 {
 	InitSysClock_48Mhz();
 
 	USART1_init();
+	Buffer_init(&buffer_rx, &buffer_data_rx[0], 32);
 
 	while (1) {
 		execute_cmd();
