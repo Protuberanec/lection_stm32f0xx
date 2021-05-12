@@ -44,6 +44,7 @@ SOFTWARE.
 **
 **===========================================================================
 */
+
 uint8_t status = 0;
 void TIM6_DAC_IRQHandler(void) {
 	TIM6->SR &= ~TIM_SR_UIF;
@@ -108,21 +109,56 @@ void InitSysClock_48Mhz() {
 	SystemCoreClockUpdate();
 }
 
+uint8_t data[2] = {0x65, 0x82};
+void USART_TX_SendData() {
+	static int i = 0;
+	if (USART1_SendData(data[i % 2]) == 1) {
+		++i;
+	}
+}
+void BlinkLed_via_usart(uint8_t* data, uint8_t size) {
+	GPIOC->ODR ^= GPIO_ODR_8;
+}
+
+void (*ptrCmd[256])(uint8_t*, uint8_t) = {BlinkLed};
+
+void execute_cmd() {
+	uint8_t data;
+	if (Buffer_GetFromFront(&data)) {
+		return;
+	}
+
+	static int status = 0;
+	static uint8_t cmd[8];
+	static uint8_t ptr = 0;
+	switch(status) {
+	case 0 :
+		if (data == 0x22) {
+			++status;
+			ptr = 0;
+			cmd[ptr++] = data;
+		}
+		break;
+	case 1 :
+		cmd[ptr++] = data;
+		if (ptr > 7) {
+			//check xor
+			ptrCmd[cmd[1]](&cmd[0], 8);
+
+		}
+		break;
+	}
+}
+
 int main(void)
 {
 	InitSysClock_48Mhz();
-//	InitGPIOA();
-//	InitGPIOC();
-//	InitTim6();
-//	DMA_ADC_init();
 
 	USART1_init();
-	uint8_t data = 0x00;
 
 	while (1) {
-		USART1_SendData(++data);
-//		while((ADC1->ISR & ADC_ISR_EOC) != ADC_ISR_EOC);
-//		data_adc = ADC1->DR;
-//		ADC1->ISR |= ADC_ISR_EOC;//reset interruption
+		execute_cmd();
 	}
 }
+
+
