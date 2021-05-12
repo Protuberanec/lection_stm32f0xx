@@ -31,7 +31,7 @@ SOFTWARE.
 #include "stm32f0xx.h"
 #include "my_gpio.h"
 #include "my_tim.h"
-
+#include "adc.h"
 /* Private macro */
 /* Private variables */
 /* Private function prototypes */
@@ -87,20 +87,42 @@ void GenSig2() {
 		blink_led();
 		TIM6->SR &= ~TIM_SR_UIF;
 	}
+}
 
+uint16_t data_adc;
+
+void InitSysClock_48Mhz() {
+//	1. Disable the PLL by setting PLLON to 0.
+	RCC->CR &= ~RCC_CR_PLLON;
+//	2. Wait until PLLRDY is cleared. The PLL is now fully stopped.
+	while(RCC->CR & RCC_CR_PLLRDY);
+//	3. Change the desired parameter.
+	RCC->CFGR |= RCC_CFGR_PLLMUL12;
+//	4. Enable the PLL again by setting PLLON to 1.
+	RCC->CR |= RCC_CR_PLLON;
+//	5. Wait until PLLRDY is set.
+	while(RCC->CR & RCC_CR_PLLRDY);
+
+	RCC->CFGR |= RCC_CFGR_SW_1;
+	for (int i = 0; i < 100; i++);
+	SystemCoreClockUpdate();
 }
 
 int main(void)
 {
-	InitGPIOA();
-	InitGPIOC();
-	InitTim6();
+	InitSysClock_48Mhz();
+//	InitGPIOA();
+//	InitGPIOC();
+//	InitTim6();
+//	DMA_ADC_init();
+
+	USART1_init();
+	uint8_t data = 0x00;
 
 	while (1) {
-		SpecBlinkLed();
-		if (GPIOA->IDR & (1 << 0)) {
-			int a = 10;
-			a = 10;
-		}
+		USART1_SendData(++data);
+//		while((ADC1->ISR & ADC_ISR_EOC) != ADC_ISR_EOC);
+//		data_adc = ADC1->DR;
+//		ADC1->ISR |= ADC_ISR_EOC;//reset interruption
 	}
 }
