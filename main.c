@@ -28,10 +28,7 @@ SOFTWARE.
 */
 
 /* Includes */
-#include "stm32f0xx.h"
-#include "my_gpio.h"
-#include "my_tim.h"
-#include "adc.h"
+#include "main.h"
 /* Private macro */
 /* Private variables */
 /* Private function prototypes */
@@ -116,48 +113,76 @@ void USART_TX_SendData() {
 		++i;
 	}
 }
-void BlinkLed_via_usart(uint8_t* data, uint8_t size) {
-	GPIOC->ODR ^= GPIO_ODR_8;
+
+void (*ptrCmd[256])(uint8_t*, uint8_t);
+
+void cmd_Init() {
+	for (int i = 0; i < 256; i++) {
+		ptrCmd[i] = cmd_Error;
+	}
+	ptrCmd[0x01] = cmd_BlinkLed1;
+	ptrCmd[0x02] = cmd_BlinkLed2;
 }
 
-void (*ptrCmd[256])(uint8_t*, uint8_t) = {BlinkLed};
+void cmd_BlinkLed1(uint8_t* data, uint8_t size) {
+	GPIOC->ODR ^= GPIO_ODR_8;
+}
+void cmd_BlinkLed2(uint8_t* data, uint8_t size) {
+	GPIOC->ODR ^= GPIO_ODR_9;
+}
+
+void cmd_Error(uint8_t* data, uint8_t size) {
+
+}
+
+
+
 
 void execute_cmd() {
 	uint8_t data;
-	if (Buffer_GetFromFront(&data)) {
+	if (!USART1_GetByte_RX(&data)) {
 		return;
 	}
 
 	static int status = 0;
 	static uint8_t cmd[8];
 	static uint8_t ptr = 0;
-	switch(status) {
-	case 0 :
-		if (data == 0x22) {
-			++status;
-			ptr = 0;
-			cmd[ptr++] = data;
-		}
-		break;
-	case 1 :
-		cmd[ptr++] = data;
-		if (ptr > 7) {
-			//check xor
-			ptrCmd[cmd[1]](&cmd[0], 8);
+	static uint8_t xors = 0;
 
-		}
+	switch(status) {
+		case 0 :
+			if (data == 0x22) {
+				++status;
+				ptr = 0;
+				cmd[ptr++] = data;
+				xors = 0;
+			}
+		break;
+		case 1 :
+			cmd[ptr++] = data;
+			xors ^= data;
+			if (ptr > 7) {
+				if (xors == 0) {
+					//it's ok
+					ptrCmd[cmd[1]](&cmd[0], 8);
+				}
+				status = 0;
+			}
+		break;
+		default :
+			status = 0;
 		break;
 	}
 }
 
-uint8_t buffer_data_rx[32];
-struct BUFFER buffer_rx;
+
 int main(void)
 {
 	InitSysClock_48Mhz();
 
+	cmd_Init();
+	InitLed();
 	USART1_init();
-	Buffer_init(&buffer_rx, &buffer_data_rx[0], 32);
 
 	while (1) {
 		execute_cmd();

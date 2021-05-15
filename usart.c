@@ -8,13 +8,17 @@
 #include "usart.h"
 
 static uint8_t data = 0;
+static struct BUFFER buffer_rx;
+static uint8_t buffer_data_rx[SIZE_RX_BUFFER];
 
-
+uint8_t USART1_GetByte_RX(uint8_t* data) {
+	return Buffer_GetFromFront(&buffer_rx, data);
+}
 
 void USART1_IRQHandler() {
 	if (USART1->ISR & USART_ISR_RXNE) {
 		data = USART1->RDR;
-		Buffer_AddToEnd(data);
+		Buffer_AddToEnd(&buffer_rx, data);
 	}
 	else if (USART1->ISR & USART_ISR_TXE) {
 		if (data > 254) {
@@ -42,6 +46,7 @@ static void USART1_gpio_init() {
 }
 
 void USART1_init() {
+	Buffer_init(&buffer_rx, &buffer_data_rx[0], SIZE_RX_BUFFER);
 	USART1_gpio_init();
 	RCC->APB2ENR |= RCC_APB2ENR_USART1EN;
 //	USART_CR1_OVER8;	//0 - 16, 1 - 8

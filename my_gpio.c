@@ -48,7 +48,10 @@ void SoftwareInterruptionPA0() {
 
 void InitGPIOC() {
 	RCC->AHBENR |= RCC_AHBENR_GPIOCEN;
-	GPIOC->MODER |= GPIO_MODER_MODER8_0 | GPIO_MODER_MODER9_0 | GPIO_MODER_MODER7_0;
+	GPIOC->MODER |= GPIO_MODER_MODER8_0 | GPIO_MODER_MODER9_0;	//init led!!!
+
+
+	GPIOC->MODER |= GPIO_MODER_MODER7_0;
 	GPIOC->ODR |= GPIO_ODR_8;
 }
 
@@ -63,10 +66,6 @@ void InitGPIOC() {
 void SetResetPinPC(uint8_t num_pin, uint8_t val) {
 	//you can create macros with #define
 	GPIOC->BSRR = val == 0 ? 1 << (num_pin + 16) : 1 << num_pin;
-}
-
-void BlinkLed(uint8_t num_pin) {
-	GPIOC->ODR ^= 1 << num_pin;
 }
 
 void GenerateTestSigPC7() {
