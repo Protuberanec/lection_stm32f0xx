@@ -64,7 +64,6 @@ void SetResetPinPC(uint8_t num_pin, uint8_t val) {
 	//you can create macros with #define
 	GPIOC->BSRR = val == 0 ? 1 << (num_pin + 16) : 1 << num_pin;
 }
-
 void BlinkLed(uint8_t num_pin) {
 	GPIOC->ODR ^= 1 << num_pin;
 }

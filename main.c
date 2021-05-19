@@ -150,17 +150,32 @@ void execute_cmd() {
 	}
 }
 
-uint8_t buffer_data_rx[32];
-struct BUFFER buffer_rx;
+
+uint8_t data_temp_tx[128];
+void SendTestDataUSARTDMA() {
+
+	if (DMA1_Channel2->CNDTR == 0) {
+		USART1_SendDataViaDma(&data_temp_tx[0], 128);
+	}
+	else {
+		int a = 10;
+		a = 100 + 100;
+	}
+}
+
 int main(void)
 {
 	InitSysClock_48Mhz();
 
 	USART1_init();
-	Buffer_init(&buffer_rx, &buffer_data_rx[0], 32);
+	for (int i = 0; i < 128; i++) {
+		data_temp_tx[i] = i+1;
+	}
+
 
 	while (1) {
-		execute_cmd();
+//		execute_cmd();
+		SendTestDataUSARTDMA();
 	}
 }
 
